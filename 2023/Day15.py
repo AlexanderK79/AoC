@@ -77,7 +77,7 @@ def main(stdscr):
 
     result = myHHA.processBoxes()
 
-    message = f'The answer to part 2 is (sample should be 145, answer should be x): {result}'
+    message = f'The answer to part 2 is (sample should be 145, answer should be 288521): {result}'
     print(message)
     pass
 

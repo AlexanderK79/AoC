@@ -6,8 +6,9 @@ class sampleClass:
         pass
     def build(self, fContent):
         self.content = fContent
-        for thisLine in fContent:
-            pass
+        for (y, thisLine) in enumerate(fContent):
+            for (x,thisC) in enumerate(thisLine):
+                pass
         return self
 
 def main(stdscr):
