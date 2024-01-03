@@ -37,12 +37,12 @@ class CrucibleMap:
         return self
     
 
-    def cheapestPath(self, fStartCo, fEndCo, fMaxConsecMoves):
+    def cheapestPath(self, fStartCo, fEndCo, fMinConsecMoves, fMaxConsecMoves):
         fEndCo = co(9,1) if not args.production and not args.verbose else fEndCo
-        self.explorePathClean(fStartCo.id, fEndCo.id, fMaxConsecMoves)
+        self.explorePathClean(fStartCo.id, fEndCo.id, fMinConsecMoves, fMaxConsecMoves)
         return sorted(self.allPaths,  key=lambda item: item[0])[0]
 
-    def explorePathClean(self, fStartNode, fEndNode, fMaxConsecMoves):
+    def explorePathClean(self, fStartNode, fEndNode, fMinConsecMoves, fMaxConsecMoves):
         # add the starting point to the queue
         self.pq = []
         minPathVal = 9*(self.width+self.height)
@@ -85,19 +85,17 @@ class CrucibleMap:
                 else:
                     fNewNumConsecMoves = 1
                 
-                #check if it fits the constraint of fMaxConsecMoves
+                #check if it fits the constraint of fMinConsecMoves and fMaxConsecMoves
                 if fNewNumConsecMoves > fMaxConsecMoves:
                     pass
                     continue
 
                 fEstimatedCost = fMyNewPathVal + (1*nextNode['p'].co.calcDist(self.map[fEndNode].co))
-                heapq.heappush(self.pq, (fEstimatedCost, fMyNewPathVal, nextNode['id'], nextNode['d'], fNewNumConsecMoves, fMyNewPath))
-                # remove duplicates and sort the queue
-                # a = [];[a.append(i) for i in self.pq if (i not in a) and max((i[1], i[1]+(1*self.map[i[3]].co.calcDist(self.map[fEndNode].co)))) < minPathVal];self.pq = sorted(a);del a
-                # a = [];[a.append(i) for i in self.pq if (i not in a)];self.pq = sorted(a);del a
-                # self.pq = list(filter(lambda item: item[1] <= minPathVal, self.pq))
-                pass
-                
+                if fNewNumConsecMoves < fMinConsecMoves and fNumConsecMoves < fMinConsecMoves and nextNode['d'] != fDir and fThisNode != fStartNode:
+                    # skip moves in another direction if we are under fMinConsecMoves
+                    continue
+                else:
+                    heapq.heappush(self.pq, (fEstimatedCost, fMyNewPathVal, nextNode['id'], nextNode['d'], fNewNumConsecMoves, fMyNewPath))
 
             pass
             
@@ -135,8 +133,9 @@ def main(stdscr):
     
 
     myMap = CrucibleMap()
+    """
     result = myMap.build(fContent=fContent)
-    result = myMap.cheapestPath(co(1,1), co(myMap.width, myMap.height), 3)
+    result = myMap.cheapestPath(co(1,1), co(myMap.width, myMap.height), 1, 3)
 
     message = f'The answer to part 1 is (sample should be 102/29 to 9_1, answer should be 1076): {result[0]}\n'
     # message += ' '.join([i[0] for i in result[1]]) + '\n'
@@ -145,11 +144,12 @@ def main(stdscr):
     # myMap.printMap({i[0]: i[1] for i in result[1]})
 
     print(20 * '*')
-    quit()
+    """
 
-    result = result
-
-    message = f'The answer to part 2 is (sample should be x, answer should be x): {result}'
+    myMap_P2 = CrucibleMap()
+    result = myMap_P2.build(fContent=fContent)
+    result = myMap_P2.cheapestPath(co(1,1), co(myMap_P2.width, myMap_P2.height), 4, 10)
+    message = f'The answer to part 2 is (sample should be 94, answer should be x): {result[0]}\n'
     print(message)
     pass
 
