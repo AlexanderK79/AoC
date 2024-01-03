@@ -1,11 +1,15 @@
 import argparse
 import itertools
+import heapq
 
 class CrucibleMap:
     def __init__(self) -> None:
         self.content = list()
         self.map = {}
         self.height, self.width = 0,0
+        self.pq = []
+        self.history = set()
+        self.allPaths = []
         pass
     def build(self, fContent):
         self.content = fContent
@@ -34,62 +38,79 @@ class CrucibleMap:
     
 
     def cheapestPath(self, fStartCo, fEndCo, fMaxConsecMoves):
-        self.allPaths = self.recursePath((fStartCo.id, '.', self.map[fStartCo.id].val), fEndCo.id, [], fMaxConsecMoves)
+        fEndCo = co(9,1) if not args.production and not args.verbose else fEndCo
+        self.explorePathClean(fStartCo.id, fEndCo.id, fMaxConsecMoves)
         return sorted(self.allPaths,  key=lambda item: item[0])[0]
-        
-        
-    def recursePath(self, fStartNode, fEndNode, fAllPaths, fMaxConsecMoves, fMyPath=()):
-        # returns a list of allPaths
-        """
-        Recursive function. Finds all paths through the specified
-        graph from start node to end node. For cyclical paths, this stops
-        at the end of the first cycle.
-        """
-        fMyPath += tuple([fStartNode])
-        minPathVal = 10**10 if len(fAllPaths) == 0 else min([j[0] for j in fAllPaths])
-        for nextNode in sorted(self.map[fStartNode[0]].destinations.values(), key=lambda item: (item['p'].co.calcDist(self.map[fEndNode].co), item['val'])): # sort by shorted distance to fEndNode
-            # only move forward, avoid loops
-            if nextNode['id'] in [i[0] for i in fMyPath]: continue
-            # skip if path contains more than fMaxConsecMoves consecutive moves
-            fMyNewPath = fMyPath + ((nextNode['id'], nextNode['d'], nextNode['val']),)
-            fMyNewPathVal = sum([i[2] for i in fMyNewPath[1::]])
-            # check if we have been at this point before and if that was a cheaper path, continue
-            if self.map[fMyNewPath[-1][0]].pathFrom.get(fMyNewPath[0][0], {'val': 10**21})['val'] <= fMyNewPathVal:
-                continue
-            else:
-                # this is the cheapest way to get here
-                self.map[fMyNewPath[-1][0]].pathFrom[fMyNewPath[0][0]] = {'path': fMyNewPath, 'val': fMyNewPathVal}
 
-            if len(fMyNewPath) > fMaxConsecMoves and len(set([i[1] for i in fMyNewPath[-(fMaxConsecMoves+1)::]])) == 1:
-                # print('aborting', ' '.join([i[1] for i in fMyNewPath]))
-                continue
-            # skip if path is more expensive than existing path
-            # if len(fAllPaths) > 0 and len(fMyNewPath) > max([len(i) for i in fAllPaths]):
-            if len(fAllPaths) > 0 and fMyNewPathVal > minPathVal:
-                # print('skipping, because minPathVal ==', minPathVal, 'sum fMyNewPath', fMyNewPathVal)
-                continue
-            if len(fAllPaths) > 0 and fMyNewPathVal+nextNode['p'].co.calcDist(self.map[fEndNode].co) > minPathVal:
-                # print('impossible to be shorter, thisVal', fMyNewPathVal, ' '.join([i[0] for i in fMyNewPath]))
-                continue
-
-            # print(' '.join([i[0] for i in fMyNewPath]))
-
-
-            # check if we are at the fEndNode
-            if nextNode['id'] == fEndNode:
-                fAllPaths.append((fMyNewPathVal, fMyNewPath))
-                minPathVal = min([j[0] for j in fAllPaths])
-                print('found path of', fMyNewPathVal, 'min', minPathVal)
-                print(' '.join([i[0] for i in fMyNewPath]))
-
+    def explorePathClean(self, fStartNode, fEndNode, fMaxConsecMoves):
+        # add the starting point to the queue
+        self.pq = []
+        minPathVal = 9*(self.width+self.height)
+        fEstimatedCost, fCost, fThisNode, fDir, fNumConsecMoves, fMyNewPath = 9*(self.width+self.height), 0, fStartNode, '.', 0, tuple(((fStartNode, '.', 0),))
+        heapq.heappush(self.pq, (fEstimatedCost, fCost, fThisNode, fDir, fNumConsecMoves, fMyNewPath))
+        # provide sort order of points to explore that will be unique, making sure to try the best first
+        while len(self.pq) > 0: # keep going, until the queue is empty
+            # print('size of history: ', len(self.history), 'queue', len(self.pq))
+            # [print('queue:',i[0], i[3], i[4], i[1]) for i in self.pq[:5]]
+            thisP  = heapq.heappop(self.pq)
+            fEstimatedCost, fCost, fThisNode, fDir, fNumConsecMoves, fThisPath = thisP
+            del thisP
+            # if we are at the end node, break(?)
+            if fThisNode == fEndNode:
+                # we are at the end
+                self.allPaths.append((fCost, fThisPath))
+                minPathVal = min([j[0] for j in self.allPaths])
+                print('found path of', fCost, 'min', minPathVal)
+                self.printMap({i[0]: i[1] for i in fThisPath})
                 pass
+                break
+                # continue
+            
+            # maintain a list of all points, direction and consecmoves already visited
+            fHistEntry = (fThisNode, fDir, fNumConsecMoves)
+            if fHistEntry in self.history:
+                pass
+                continue
             else:
-                self.recursePath((nextNode['id'], nextNode['d'], nextNode['val']), fEndNode, fAllPaths, fMaxConsecMoves, fMyPath)
-        return fAllPaths
+                self.history.add(fHistEntry)
+            del fHistEntry
 
-    def printMap(self):
+            for nextNode in self.map[fThisNode].destinations.values():
+                if len(fThisPath) > 1 and nextNode['id'] == fThisPath[-2][0]:
+                    continue # don't return to the previous node
+                fMyNewPath = fThisPath + ((nextNode['id'], nextNode['d'], fCost+nextNode['val']),)
+                fMyNewPathVal = fMyNewPath[-1][2]
+                if fMyNewPath[-2][1] == fMyNewPath[-1][1]:
+                    fNewNumConsecMoves = fNumConsecMoves + 1
+                else:
+                    fNewNumConsecMoves = 1
+                
+                #check if it fits the constraint of fMaxConsecMoves
+                if fNewNumConsecMoves > fMaxConsecMoves:
+                    pass
+                    continue
+
+                fEstimatedCost = fMyNewPathVal + (1*nextNode['p'].co.calcDist(self.map[fEndNode].co))
+                heapq.heappush(self.pq, (fEstimatedCost, fMyNewPathVal, nextNode['id'], nextNode['d'], fNewNumConsecMoves, fMyNewPath))
+                # remove duplicates and sort the queue
+                # a = [];[a.append(i) for i in self.pq if (i not in a) and max((i[1], i[1]+(1*self.map[i[3]].co.calcDist(self.map[fEndNode].co)))) < minPathVal];self.pq = sorted(a);del a
+                # a = [];[a.append(i) for i in self.pq if (i not in a)];self.pq = sorted(a);del a
+                # self.pq = list(filter(lambda item: item[1] <= minPathVal, self.pq))
+                pass
+                
+
+            pass
+            
+            
+
+
+    def printMap(self, fPath={}):
         for y in range(1, self.height+1):
-            print(''.join([self.map['_'.join(map(str, (x,y)))].val for x in range(1, self.width+1)]))
+            if fPath == {}:
+                print(''.join(map(str,[self.map['_'.join(map(str, (x,y)))].val for x in range(1, self.width+1)])))
+            else:
+                print(''.join(map(str,[fPath.get('_'.join(map(str, (x,y))), self.map['_'.join(map(str, (x,y)))].val) for x in range(1, self.width+1)])))
+
 
 class pathPoint:
     def __init__(self, fX, fY, fVal) -> None:
@@ -117,11 +138,14 @@ def main(stdscr):
     result = myMap.build(fContent=fContent)
     result = myMap.cheapestPath(co(1,1), co(myMap.width, myMap.height), 3)
 
-    message = f'The answer to part 1 is (sample should be 102, answer should be x): {result[0]}\n'
-    message += ' '.join([i[0] for i in result[1]])
+    message = f'The answer to part 1 is (sample should be 102/29 to 9_1, answer should be 1076): {result[0]}\n'
+    # message += ' '.join([i[0] for i in result[1]]) + '\n'
+    # message += '   '.join([i[1] for i in result[1]])
     print(message)
+    # myMap.printMap({i[0]: i[1] for i in result[1]})
 
     print(20 * '*')
+    quit()
 
     result = result
 
