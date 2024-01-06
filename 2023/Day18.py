@@ -1,6 +1,7 @@
 import argparse
 import heapq
 import itertools
+import matplotlib.pyplot as plt
 
 class lagoon:
     def __init__(self) -> None:
@@ -40,9 +41,9 @@ class lagoon:
             thisX, thisY = self.layout[-1].endCo.x, self.layout[-1].endCo.y
         self.width  = 1+max([max((i.startCo.x, i.endCo.x)) for i in self.layout])-min([min((i.startCo.x, i.endCo.x)) for i in self.layout])
         self.height = 1+max([max((i.startCo.y, i.endCo.y)) for i in self.layout])-min([min((i.startCo.y, i.endCo.y)) for i in self.layout])
-        self.grid = [['.' for x in range(self.width)] for y in range(self.height)]
+        # self.grid = [['.' for x in range(self.width)] for y in range(self.height)]
         self.grid_offset_xy = (-min([min((i.startCo.x, i.endCo.x)) for i in self.layout]), -min([min((i.startCo.y, i.endCo.y)) for i in self.layout]))
-        print('Offset is:', self.grid_offset_xy) if args.verbose else None
+        # print('Offset is:', self.grid_offset_xy) if args.verbose else None
         pass
 
     def dig(self):
@@ -57,6 +58,7 @@ class lagoon:
             pass
         # loop should be closed
         [print(''.join([self.grid[y][x] for x in range(self.width)])) for y in range(self.height)]
+        print('')
         # now do a flood fill
         thisCursor = co(self.grid_offset_xy[0], self.grid_offset_xy[1])
         thisCursor = co(thisCursor.x+1, thisCursor.y+1)
@@ -70,20 +72,59 @@ class lagoon:
         [print(''.join([self.grid[y][x] for x in range(self.width)])) for y in range(self.height)]
         pass
 
+    def calcArea(self):
+        # https://en.wikipedia.org/wiki/Shoelace_formula
+        # create a chain of polygon points
+        # thisPolygonPoints = [(p.startCo.co, p.endCo.co) for p in self.layout] + [(self.layout[-1].endCo.co, self.layout[0].startCo.co)]
 
+        #create perimeter in coordinates
+        thisX, thisY = 1, 0
+        for (i,LE) in enumerate(self.layout):
+            thisXcorr, thisYcorr       = 0, 0
+            thisXcorrPre, thisYcorrPre = 0, 0
+            # clockwise directions (assuming clockwise ordering of the polygon)
+            nextDir = 'R' if i == len(self.layout)-1 else self.layout[i+1].dir
+            if (LE.dir, nextDir) == ('U', 'R') : thisXcorr = 1
+            if (LE.dir, nextDir) == ('R', 'D') : thisYcorr = -1
+            if (LE.dir, nextDir) == ('D', 'L') : thisXcorr = -1
+            if (LE.dir, nextDir) == ('L', 'U') : thisYcorr = 1
+            # counterclockwise directions
+            if (LE.dir, nextDir) == ('U', 'L') : thisXcorr, thisYcorrPre = 0, -1
+            if (LE.dir, nextDir) == ('L', 'D') : thisXcorrPre = 1
+            if (LE.dir, nextDir) == ('D', 'R') : thisXcorrPre, thisYcorrPre = 0, 1
+            if (LE.dir, nextDir) == ('R', 'U') : thisXcorrPre = -1
 
+            thisX = thisX + ((LE.len if LE.dir in ('L', 'R') else 0) * (-1 if LE.dir in ('L', 'D') else 1))
+            thisY = thisY + ((LE.len if LE.dir in ('U', 'D') else 0) * (-1 if LE.dir in ('L', 'D') else 1))
 
+            thisX = thisX + thisXcorrPre
+            thisY = thisY + thisYcorrPre
+
+            LE.periCo = co(thisX, thisY)
+            thisX = thisX + thisXcorr
+            thisY = thisY + thisYcorr
+
+            pass
+
+        a=[p.periCo.co for p in self.layout]
+
+        plt.plot([1]+[c.periCo.x for c in self.layout]+[1], [0]+[c.periCo.y for c in self.layout]+[0] )
+        plt.show()
+
+        thisPolygonPoints = list(zip([(1,0)] + a, a + [(1,0)]))
+        return abs(0.5 * sum([p[0][0]*p[1][1] - (p[0][1]*p[1][0]) for p in thisPolygonPoints]))
 
 
 class lagoonEdge:
     def __init__(self, fX, fY, fDir, fLen, fColor) -> None:
-        fLen = fLen -1 if (fX,fY) == (0, 0) else fLen
         xyDir ={'R': (1, 0), 'L': (-1, 0), 'U': (0, -1), 'D': (0, 1)}
+        fLen = fLen
         colorEdge ={'R': 'N', 'L': 'S', 'U': 'W', 'D': 'E'}
         self.startCo  = co(fX, fY)
         self.endCo = co(fX + (fLen * xyDir[fDir][0]), fY + (fLen * xyDir[fDir][1]))
         self.color = {colorEdge[fDir]: fColor}
         self.dir = fDir
+        self.len = fLen
 
 class co:
     def __init__(self, fX, fY) -> None:
@@ -109,12 +150,14 @@ def main(stdscr):
 
     print(20 * '*')
 
+    result = myMap.calcArea()
+    print(result)
+
     myMap_p2 = lagoon()
     result = myMap_p2.build_p2(fContent=fContent)
-    result = myMap_p2.dig()
-    result = sum([[myMap.grid[y][x] for x in range(myMap.width)].count('#') for y in range(myMap.height)])
+    result = myMap_p2.calcArea()
 
-    message = f'The answer to part 2 is (sample should be 62365, answer should be x): {result}'
+    message = f'The answer to part 2 is (sample should be 952408144115, answer should be 159485361249806): {result}'
     print(message)
     pass
 
