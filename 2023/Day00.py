@@ -39,7 +39,7 @@ parser.add_argument("-i", "--drawinterval", type=int, default=1, help="Add the v
 parser.add_argument("-p", "--production", action="store_true", default=False, help="Add this to try the puzzle input")
 args = parser.parse_args()
 
-day = '01'
+day = '20'
 fName = f'2023/input/{day}_sample.txt'
 if args.production: fName = f'2023/input/{day}.txt'
 
