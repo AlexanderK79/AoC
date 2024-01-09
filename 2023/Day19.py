@@ -1,5 +1,9 @@
 import argparse
 import re
+import math
+from copy import deepcopy
+from functools import reduce
+import itertools
 
 class pipeLine:
     def __init__(self, fName, fParm) -> None:
@@ -47,6 +51,11 @@ class part:
         self.sum = sum(self.val.values())
         pass
 
+def ranges(i):
+    for a, b in itertools.groupby(enumerate(i), lambda pair: pair[1] - pair[0]):
+        b = list(b)
+        yield b[0][1], b[-1][1]
+
 def main(stdscr):
     with open(fName, 'r+') as f:
         fContent = f.read().splitlines()
@@ -86,9 +95,61 @@ def main(stdscr):
 
     print(20 * '*')
 
-    result = 0
+    # possible number of combinations to end up in the 'A'
+    # walk the pipelines, like they are paths/maze/graph
 
-    message = f'The answer to part 2 is (sample should be x, answer should be x): {result}'
+    paths, paths2explore = [], []
+    limits = (1,4001)
+    thisPath = [thisStartPL]
+    paths2explore.append([thisPath, dict(zip('xmas', [list(), list(), list(), list()]))])
+    while len(paths2explore) > 0:
+        thisPath, thisVals = paths2explore.pop()
+        thisPath = deepcopy(thisPath)
+        newPath = deepcopy(thisPath)
+        thisPL = thisPath[-1]
+        for r in myPipelines[thisPL].rules:
+            newVals = deepcopy(thisVals)
+            if r.op == None:
+                newPath = thisPath + [r.dest]
+            if r.op == '<':
+                newVals[r.name].append(range(limits[0],r.val))
+                thisVals[r.name].append(range(r.val, limits[1]))
+                newPath = thisPath + [r.dest]
+            if r.op == '>':
+                newVals[r.name].append(range(r.val+1, limits[1]))
+                thisVals[r.name].append(range(limits[0], r.val+1))
+                newPath = thisPath + [r.dest]
+            if r.dest in ('R', 'A'):
+                paths.append((newPath, newVals))
+            else:
+                paths2explore.append((newPath, newVals))
+        pass
+    pass
+    del paths2explore, myParts, f, fContent, regex, stdscr, thisDest, thisLine, thisParm
+    del message, newPath, newVals, p, r, thisPL, thisPath, thisStartPL, thisVals
+
+    # count combinations
+    totalNumCombis = 0
+    knownCombis = []
+    for p in [i for i in paths if i[0][-1] == 'A']:
+        thisPath = p[0]
+        thisCombi = [reduce((lambda x, y: set(x).intersection(y)), s) for s in [[range(limits[0], limits[1]), range(limits[0], limits[1])] if v == [] else [range(limits[0], limits[1])] + v for v in p[1].values()]]
+
+        totalNumCombis += math.prod([len(i) for i in thisCombi])
+        # subtract the intersections with knownCombis
+
+        duplicates = sum([math.prod([len(c[i].intersection(thisCombi[i])) for i in range(len(c))]) for c in knownCombis if c != thisCombi])
+        print('processing', p[0], [list(ranges(i)) for i in thisCombi]) if args.verbose else None
+        [print ([len(c[i].intersection(thisCombi[i])) for i in range(len(c))]) for c in knownCombis if c != thisCombi]  if args.verbose else None
+        totalNumCombis -= duplicates
+        knownCombis.append(thisCombi)
+
+        pass
+    del p
+    
+    result = totalNumCombis
+
+    message = f'The answer to part 2 is (sample should be 167409079868000, answer should be 123972546935551, 123950345737372 is too low):\n167409079868000\n{result}'
     print(message)
     pass
 
