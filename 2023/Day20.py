@@ -1,4 +1,5 @@
 import argparse
+from math import lcm
 
 class pulseMap:
     def __init__(self) -> None:
@@ -57,8 +58,11 @@ class pulseModule:
         self.destinations = [] # references to destination modules
         self.sources = [] # references to source modules
         self.lastPulse = 'low'
+        self.intervalHigh = 0 if fType == 'cj' else None
+        self.counter={'low': 0, 'high': 0}
     def process(self, fPulse):
         self.parent.pulseCounter[fPulse] += 1
+        self.counter[fPulse] += 1
         if self.type == 'ff':
             # If a flip-flop module receives a high pulse, it is ignored and nothing happens. 
             if fPulse == 'high':
@@ -80,6 +84,11 @@ class pulseModule:
                 outPulse = 'low'
             else:
                 outPulse = 'high'
+                if self in self.parent.modules['rx'].sources[0].sources:
+                    # it turns out to be an easy interval, starting at 0 and stable, from the start
+                    if self.intervalHigh == 0:
+                        self.intervalHigh=sum(self.parent.modules['broadcaster'].counter.values())
+                    print(self.name, self.intervalHigh)
             pass
         elif self.type == 'bc':
             # When it receives a pulse, it sends the same pulse to all of its destination modules.
@@ -101,7 +110,7 @@ def main(stdscr):
     with open(fName, 'r+') as f:
         fContent = f.read().splitlines()
     
-
+    """
     myMap = pulseMap()
     result = myMap.build(fContent=fContent)
     for i in range(1, 1001):
@@ -115,10 +124,28 @@ def main(stdscr):
     print(message)
 
     print(20 * '*')
+    """
 
-    result = result
+    myMap_p2 = pulseMap()
+    result = myMap_p2.build(fContent=fContent)
+    i = 0
+    # analyze the flow; rx will receive a low signal, if there is one input for rx
+    # this is bq: a conjunction module
+    # this will send a low signal, if all of it's inputs are high
+    # check out https://mermaid.live/view#pako:eNplVMFy2yAQ_RUPh56cyI4dO_Ghh06vPbWnyj1IQoAthCUgKmHH_14QqwyT-sDIj-Xt290HQJobbcmJMHn724hK29Wvb2e1Cr96LIt6PJ__rB4evq60S6ix77IN_1bsIuVJtzTBioKi9zmSmQSNEkaZoNEniHvgPkHTlCDJQfIEebf6spKYx2qwOuEGc0wKJoWEMoQurB2HDikcQuYK5pogjnIEA8EwqkfCCaYpQf0YCGmNMhlwDGUq0-QteIuaOmxSD3WfIBnlN0PCmwGaIcP5Qm2AGxQ2ZjWYAQzG0zrgV4H8AmqR8E5nEl0Nrl6aG_BJJZw5YA5xhilH4GMW6haKARym9LHKpc1CgsC5WZ3hpgPTJVwh1AvoUZ0zWejoyyJUhtZRNG5d49LFVgxxaaJoERZvcRi8LCa-nAnGS0kFGMwwYKuuAq5LSzg6YCiLbvh8lg_AlwIxCW_KgjefAx0Dt1hjmd8EzbTYL6gUMuG0LoswAyToeCwq1tPFhbl5crG8xZoaOr2MFZN5cHgHvMkmygwwk43JXDG-B4cO60RmxpHByDLHLCmZAoa3pEafdwI6kZsRnTEJmESWkmPx_Qg9OqYWmUSvwCN1g9fXTGCwT45lDpAC5EdKbJ0Eir6SeSHegXeZOoHqBg-Dz0bQoMUbBY3KcINSnAGHDTR4e3gNvM6oKU7RurKw7j-v0bII-hHto0YbT5n4NVc33xOHD4oMJPKDZH4oRAyaoikkOtMb8CabEsOia32raFMZ2-r0HIrFSTIe70MBZE36VvfVhYbnGeKxM7Gi7dszOYVPWunuTM7qHuKqN3v7-a4acmKVNO2avA20su33S8V11X-gLb3Ym_6RHvz53V-ToVLkBMSR0-7p-LjZHw6bzW6_Pb4eXtfknZyOj_vtbvO8DxtP--Pz8-t9TfztFki3j0_H7fG4374cdi-bl91hN7P9njetfmvv_wDLldnM
+    # for a flowchart of this pulseMap
 
-    message = f'The answer to part 2 is (sample should be x, answer should be x): {result}'
+    bq_inputs = [pm.intervalHigh for pm in myMap_p2.modules['rx'].sources[0].sources if pm.intervalHigh>0]
+    while len(bq_inputs)<4:
+        i += 1
+        myMap_p2.process(myMap_p2.modules['broadcaster'], 'low')
+        if i % 1000 == 0: print('processing cycle', i)
+        bq_inputs = [pm.intervalHigh for pm in myMap_p2.modules['rx'].sources[0].sources if pm.intervalHigh>0]
+    print ('cycle', i, 'bq_inputs', bq_inputs)
+    result = lcm(*bq_inputs)
+
+    message = f'The answer to part 2 is (there is no sample, answer should be 238593356738827, 115446164960 is too low): {result}'
+    
     print(message)
     pass
 
