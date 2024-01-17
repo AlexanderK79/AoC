@@ -1,6 +1,6 @@
 import argparse
 
-class sampleClass:
+class AoCmap:
     def __init__(self) -> None:
         self.content = list()
         self.height, self.width = 0, 0
@@ -52,8 +52,9 @@ def main(stdscr):
         fContent = f.read().splitlines()
     
 
-    myMap = sampleClass()
+    myMap = AoCmap()
     result = myMap.build(fContent=fContent)
+    myMap.printmap()
 
     message = f'The answer to part 1 is (sample should be x, answer should be x): {result}'
     print(message)
