@@ -36,7 +36,7 @@ class AoCmap:
                     p.neighboors[direction] = thisNb
         return self
 
-    def findLongestPath(self):
+    def findLongestPath(self, p2=False):
         # do not return to tiles previously traveled, follow direction on <>v (^not used) tiles
         prioQ = [] # order by EstimatedCost, longest route first
         heapq.heapify(prioQ)
@@ -50,6 +50,8 @@ class AoCmap:
             thisN = heapq.heappop(prioQ)
             thisVal, thisN, thisPath = thisN
             thisCost = len(thisPath)-1
+            # if nodePath.get(thisN, thisCost) > thisCost: continue # we have been here before, but more expensive
+            nodePath[thisN] = thisCost
 
             if thisN == self.endingCo:
                 # we are at the end
@@ -59,12 +61,12 @@ class AoCmap:
             # explore the next paths
             for k, v in self.matrix[thisN].neighboors.items():
                 if v.val in ('#'): continue
-                if ''.join((k,v.val)) in ('><', '<>', '^v', 'v^'): continue # to steep
+                if not p2:
+                    if ''.join((k,v.val)) in ('><', '<>', '^v', 'v^'): continue # to steep
                 if v.id in thisPath: continue # already visited
                 nextPath = thisPath + [v.id]
                 heapq.heappush(prioQ, (maxPath - thisCost, nextPath[-1], nextPath))
         pass
-
 
     def printmap(self, fReversed = False, fPath = dict()):
         for h in range(self.height, 0, -1) if fReversed else range(1, self.height+1):
@@ -88,7 +90,7 @@ def main(stdscr):
 
     myMap = AoCmap()
     result = myMap.build(fContent=fContent)
-    myMap.printmap()
+    if args.verbose: myMap.printmap()
     myMap.findLongestPath()
     result = max([p[0] for p in myMap.completePaths])
 
@@ -96,10 +98,11 @@ def main(stdscr):
     print(message)
 
     print(20 * '*')
+    myMap.findLongestPath(p2=True)
+    result = max([p[0] for p in myMap.completePaths])
 
-    result = result
 
-    message = f'The answer to part 2 is (sample should be x, answer should be x): {result}'
+    message = f'The answer to part 2 is (sample should be 154, answer should be x, 4778 too low): {result}'
     print(message)
     pass
 
