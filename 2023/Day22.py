@@ -122,8 +122,8 @@ def main(stdscr):
     # drop every block by 1 z, until the pile stabilizes
     myPile.drop_pile()
     if args.verbose and args.production: pass
-    myPile.draw()
-    [b.update_support() for b in myPile.blocks]
+    # myPile.draw()
+
     pass
     safe_blocks = [thisB for thisB in [(b.name, 1 not in [len(bs.supportedby) for bs in b.supports]) for b in myPile.blocks if b.name != 'FLOOR'] if thisB[1] == True]
     result = len(safe_blocks)
@@ -133,10 +133,31 @@ def main(stdscr):
     print(message)
 
     print(20 * '*')
+    # sorted_pile_reverse = sorted(myPile.blocks, key = lambda thisB: max(np.where(thisB.dims)[2]), reverse=True)
+    # supported_vals = dict()
+    # supported_vals ={b.name: set([bs.name for bs in b.supports if len(bs.supportedby)==1] + [supported_vals.get(bs.name, None) for bs in b.supports if len(bs.supports)>0]) for b in sorted_pile_reverse}
+    # [supported_vals[k].remove(None) for k,v in supported_vals.items() if None in v]
+    # result = ([(k,v) for k,v in supported_vals.items() if k != 'FLOOR'])
 
-    result = result
+    # calculate the dependency value of each block
+    supported_vals = dict()
+    for b in [b.name for b in myPile.blocks if b.name != 'FLOOR']:
+        temp_pile = {b.name: [bs.name for bs in b.supportedby] for b in myPile.blocks}
+        temp_pile['FLOOR'] = ['FLOOR']
+        orglen = len(temp_pile)
+        del temp_pile[b] # remove this block
+        newlen, prevlen = -1,orglen
+        while newlen < prevlen:
+            print('Removing', b)
+            prevlen = newlen if newlen > -1 else orglen
+            temp_pile = {k: [vs for vs in v if vs in temp_pile.keys()] for k,v in temp_pile.items()}
+            temp_pile = {k: v for k,v in temp_pile.items() if len(v)>0}
+            newlen = len(temp_pile) 
+        supported_vals[b] = orglen - newlen - 1 # exclude FLOOR
 
-    message = f'The answer to part 2 is (sample should be x, answer should be x): {result}'
+    print(repr(supported_vals))
+    result = sum(supported_vals.values())
+    message = f'The answer to part 2 is (sample should be 7, answer should be x): {result}'
     print(message)
     pass
 
