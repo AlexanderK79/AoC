@@ -1,11 +1,14 @@
 import argparse
+import heapq
 
 class AoCmap:
     def __init__(self) -> None:
         self.content = list()
         self.height, self.width = 0, 0
         self.startingCo = None
+        self.endingCo = None
         self.matrix = {}
+        self.completePaths = []
         pass
     def build(self, fContent):
         self.content = fContent
@@ -18,6 +21,7 @@ class AoCmap:
                 self.matrix[thisCo.id] = thisCo
         self.height, self.width = y, x
         self.startingCo = [i.id for i in self.matrix.values() if i.val == 'S'][0]
+        self.endingCo = [i.id for i in self.matrix.values() if i.val == 'E'][0]
         # set all neighboors
         for p in self.matrix.values():
             thisX, thisY = p.x, p.y
@@ -31,6 +35,36 @@ class AoCmap:
                         case ( 0,  1): direction = 'v'
                     p.neighboors[direction] = thisNb
         return self
+
+    def findLongestPath(self):
+        # do not return to tiles previously traveled, follow direction on <>v (^not used) tiles
+        prioQ = [] # order by EstimatedCost, longest route first
+        heapq.heapify(prioQ)
+        maxPath = self.height * self.width
+        thisPath = [self.startingCo]
+        nextPath = [self.startingCo]
+        nodePath = {}
+        nodePath[self.startingCo] = 0
+        heapq.heappush(prioQ, (maxPath - len(nextPath), nextPath[-1], nextPath))
+        while len(prioQ) > 0:
+            thisN = heapq.heappop(prioQ)
+            thisVal, thisN, thisPath = thisN
+            thisCost = len(thisPath)-1
+
+            if thisN == self.endingCo:
+                # we are at the end
+                self.completePaths.append((thisCost, thisPath))
+                # break 
+
+            # explore the next paths
+            for k, v in self.matrix[thisN].neighboors.items():
+                if v.val in ('#'): continue
+                if ''.join((k,v.val)) in ('><', '<>', '^v', 'v^'): continue # to steep
+                if v.id in thisPath: continue # already visited
+                nextPath = thisPath + [v.id]
+                heapq.heappush(prioQ, (maxPath - thisCost, nextPath[-1], nextPath))
+        pass
+
 
     def printmap(self, fReversed = False, fPath = dict()):
         for h in range(self.height, 0, -1) if fReversed else range(1, self.height+1):
@@ -55,9 +89,10 @@ def main(stdscr):
     myMap = AoCmap()
     result = myMap.build(fContent=fContent)
     myMap.printmap()
-    pass
+    myMap.findLongestPath()
+    result = max([p[0] for p in myMap.completePaths])
 
-    message = f'The answer to part 1 is (sample should be 94, answer should be x): {result}'
+    message = f'The answer to part 1 is (sample should be 94, answer should be 2086): {result}'
     print(message)
 
     print(20 * '*')
