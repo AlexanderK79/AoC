@@ -1,6 +1,6 @@
 import argparse
 import matplotlib.pyplot as plt
-from collections import Counter
+import sympy
 
 class hailStorm:
     def __init__(self) -> None:
@@ -76,38 +76,23 @@ def main(stdscr):
     print(message)
 
     print(20 * '*')
+    # solution as described in https://www.youtube.com/watch?v=guOyA7Ijqgk&t=1513s
+    xr, yr, zr, vxr, vyr, vzr = sympy.symbols("xr, yr, zr, vxr, vyr, vzr")
+    equations = []
+    for i, hs in enumerate(myHS.hailstones_p2):
+        sx, sy, sz, vx, vy, vz = hs.x, hs.y, hs.z, hs.dx, hs.dy, hs.dz
+        equations.append((xr - sx) * (vy - vyr) - (yr - sy) * (vx - vxr))
+        equations.append((yr - sy) * (vz - vzr) - (zr - sz) * (vy - vyr))
+        if i < 2:
+            continue
+        answers = [soln for soln in sympy.solve(equations) if all(x % 1 == 0 for x in soln.values())]
+        if len(answers) == 1:
+            break
+        
+    result = answers[0]
+    result = result[xr] + result[yr] + result[zr]
 
-    repfound = False
-    t = -1
-    while not repfound:
-        t += 1
-        if t % 50 == 0: print('processing t', t)
-        # assert t<50, 't should be smaller than 50'
-        myHS.sims[t] = {i.name: {'pos': i.calc(t), 'dist': dict()} for i in myHS.hailstones_p2[:3]}
-        if t == 0: continue
-        # make a diff to each prev point
-        for thisName,thisPos in myHS.sims[t].items():
-            for prevT in range(1, t):
-                for prevName, prevPos in myHS.sims[prevT].items():
-                    if prevName == thisName: continue
-                    if prevT == 1: myHS.sims[t][thisName]['dist'][prevName] = {}
-                    myHS.sims[t][thisName]['dist'][prevName][prevT] = tuple([(a-b)/(t-prevT) for a,b in zip(thisPos['pos'], prevPos['pos'])])
-                    pass
-        # get all diffs
-        all_diffs = [item for sublist in [[item for sublist in [list(p['dist'].values()) for p in vals.values()] for item in sublist] for t,vals in myHS.sims.items() if t>1] for item in sublist]
-        all_diffs = [item for sublist in [list(i.values()) for i in all_diffs] for item in sublist]
-        # get most occurences
-        best_guess = [(d,c) for d,c in Counter(all_diffs).items() if c>2]
-        if len(best_guess) > 0:
-            repfound = True
-    best_guess = sorted(best_guess, key=lambda item:(item[1], item[0]), reverse=True )[0]
-    pass
-
-
-
-    result = best_guess
-
-    message = f'The answer to part 2 is (sample should be 47, answer should be x): {result}'
+    message = f'The answer to part 2 is (sample should be 47, answer should be 527310134398221): {result}'
     print(message)
     pass
 
