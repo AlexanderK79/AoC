@@ -163,8 +163,8 @@ parser.add_argument("-p", "--production", action="store_true", default=False, he
 args = parser.parse_args()
 
 day = '17'
-fName = f'2023/input/{day}_sample.txt'
-if args.production: fName = f'2023/input/{day}.txt'
+fName = f'2024/input/{day}_sample.txt'
+if args.production: fName = f'2024/input/{day}.txt'
 
 debug = args.verbose
 draw = args.draw

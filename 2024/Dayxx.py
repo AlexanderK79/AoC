@@ -124,9 +124,23 @@ class co:
         self.co = (self.x, self.y)
         self.id = '_'.join(map(str, (self.co)))
         pass
+    def __eq__(self, other):
+        return self.co == other.co
     def calcDist(self, fCo) -> None:
         return abs(self.x - fCo.x) + abs(self.y - fCo.y)
-
+    def betweenCos(self, fDestCo) -> None:
+        # return the list of coordinates between two points if it is horizontal or vertical
+        thisList = list()
+        if not (self.x == fDestCo.x or self.y == fDestCo.y):
+            quit()
+        else:
+            # 75,0   75,-30
+            step_x, step_y = 1 if fDestCo.x > self.x else -1, 1 if fDestCo.y > self.y else -1
+            for x in range(self.x, fDestCo.x + step_x, step_x):
+                for y in range(self.y, fDestCo.y + step_y, step_y):
+                    thisList.append(co(x, y))
+            return thisList
+        
 def main(stdscr):
     with open(fName, 'r+') as f:
         fContent = f.read().splitlines()
@@ -163,8 +177,8 @@ parser.add_argument("-p", "--production", action="store_true", default=False, he
 args = parser.parse_args()
 
 day = '17'
-fName = f'2023/input/{day}_sample.txt'
-if args.production: fName = f'2023/input/{day}.txt'
+fName = f'2024/input/{day}_sample.txt'
+if args.production: fName = f'2024/input/{day}.txt'
 
 debug = args.verbose
 draw = args.draw
