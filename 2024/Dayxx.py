@@ -2,7 +2,7 @@ import argparse
 import itertools
 import heapq
 
-class CrucibleMap:
+class myMap:
     def __init__(self) -> None:
         self.content = list()
         self.map = {}
@@ -98,9 +98,6 @@ class CrucibleMap:
                     heapq.heappush(self.pq, (fEstimatedCost, fMyNewPathVal, nextNode['id'], nextNode['d'], fNewNumConsecMoves, fMyNewPath))
 
             pass
-            
-            
-
 
     def printMap(self, fPath={}):
         for y in range(1, self.height+1):
