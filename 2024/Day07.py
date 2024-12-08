@@ -28,7 +28,7 @@ def main(stdscr):
 
 
     result = sum([r[0] for r in myCal if r[2]])
-    message = f'The answer to part 1 is (sample should be 3749, answer should be ?): {result}\n'
+    message = f'The answer to part 1 is (sample should be 3749, answer should be 6392012777720): {result}\n'
     print(message)
     pass
 
